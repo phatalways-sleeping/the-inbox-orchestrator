@@ -1,9 +1,14 @@
-use std::net::TcpListener;
+use std::{env, net::TcpListener};
 
+use once_cell::sync::Lazy;
 use reqwest::Client;
+use secrecy::ExposeSecret;
 use sqlx::{Connection, Executor, PgConnection, PgPool};
 use uuid::Uuid;
-use zero2prod::configurations::{get_configuration, DatabaseSettings};
+use zero2prod::{
+    configurations::{get_configuration, DatabaseSettings},
+    telemetry::{get_subscriber, init_subscriber},
+};
 
 #[tokio::test]
 async fn health_check_works() {
@@ -67,17 +72,33 @@ async fn subscribe_returns_400_for_bad_requests() {
     }
 }
 
+static TRACING: Lazy<()> = Lazy::new(|| {
+    let name = String::from("test");
+    let env_filter = String::from("debug");
+    if env::var("TEST_LOG").is_ok() {
+        let subscriber = get_subscriber(name, env_filter, std::io::stdout);
+        init_subscriber(subscriber);
+    } else {
+        let subscriber = get_subscriber(name, env_filter, std::io::sink);
+        init_subscriber(subscriber);
+    }
+});
+
 pub struct TestApp {
     pub address: String,
     pub db_pool: PgPool,
 }
 
 async fn spawn_app() -> TestApp {
+    Lazy::force(&TRACING);
+
     let listener = TcpListener::bind("127.0.0.1:0").expect("Fail to bind to a random port");
     let port = listener.local_addr().unwrap().port();
+
     let mut configuration = get_configuration().expect("Fail to read configuration");
     configuration.database.database_name = Uuid::new_v4().to_string();
     let conection_pool = configure_database(&configuration.database).await;
+
     let server =
         zero2prod::run(listener, conection_pool.clone()).expect("Fail to bind to the address");
     let _ = tokio::spawn(server);
@@ -89,7 +110,7 @@ async fn spawn_app() -> TestApp {
 }
 
 pub async fn configure_database(config: &DatabaseSettings) -> PgPool {
-    let mut connection = PgConnection::connect(&config.raw_connection_string())
+    let mut connection = PgConnection::connect(config.raw_connection_string().expose_secret())
         .await
         .expect("Fail to connect to Postgres server");
     connection
@@ -97,7 +118,7 @@ pub async fn configure_database(config: &DatabaseSettings) -> PgPool {
         .await
         .expect("Fail to create new table on the server");
     // Run the migration on the database
-    let connection_pool = PgPool::connect(&config.connection_string())
+    let connection_pool = PgPool::connect(config.connection_string().expose_secret())
         .await
         .expect("Fail to connect to the newly created database");
     sqlx::migrate!("./migrations")
