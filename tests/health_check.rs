@@ -2,7 +2,6 @@ use std::{env, net::TcpListener};
 
 use once_cell::sync::Lazy;
 use reqwest::Client;
-use secrecy::ExposeSecret;
 use sqlx::{Connection, Executor, PgConnection, PgPool};
 use uuid::Uuid;
 use zero2prod::{
@@ -110,7 +109,7 @@ async fn spawn_app() -> TestApp {
 }
 
 pub async fn configure_database(config: &DatabaseSettings) -> PgPool {
-    let mut connection = PgConnection::connect(config.raw_connection_string().expose_secret())
+    let mut connection = PgConnection::connect_with(&config.without_db())
         .await
         .expect("Fail to connect to Postgres server");
     connection
@@ -118,7 +117,7 @@ pub async fn configure_database(config: &DatabaseSettings) -> PgPool {
         .await
         .expect("Fail to create new table on the server");
     // Run the migration on the database
-    let connection_pool = PgPool::connect(config.connection_string().expose_secret())
+    let connection_pool = PgPool::connect_with(config.with_db())
         .await
         .expect("Fail to connect to the newly created database");
     sqlx::migrate!("./migrations")
