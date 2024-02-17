@@ -6,3 +6,8 @@ database:
   username: "postgres"
   password: "postgres"
   database_name: "newsletter"
+email_client:
+  sender_email: "tkphat21@apcs.fitus.edu.vn"
+  base_url: "localhost"
+  authorization_token: "36649c8c-f93b-4d76-a478-c2dc579c9577"
+  timeout_milliseconds: 10000

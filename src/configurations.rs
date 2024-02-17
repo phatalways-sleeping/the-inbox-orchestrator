@@ -9,14 +9,18 @@ use sqlx::postgres::PgSslMode;
 use sqlx::ConnectOptions;
 use std::convert::TryFrom;
 use std::env;
+use std::time::Duration;
 
-#[derive(Deserialize)]
+use crate::domain::SubscriberEmail;
+
+#[derive(Deserialize, Clone)]
 pub struct Settings {
     pub application: ApplicationSettings,
     pub database: DatabaseSettings,
+    pub email_client: EmailClientSettings,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone)]
 pub struct DatabaseSettings {
     pub username: String,
     pub password: Secret<String>,
@@ -27,11 +31,30 @@ pub struct DatabaseSettings {
     pub require_ssl: bool,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone)]
 pub struct ApplicationSettings {
     pub host: String,
     #[serde(deserialize_with = "deserialize_number_from_string")]
     pub port: u16,
+    pub base_url: String,
+}
+
+#[derive(Deserialize, Clone)]
+pub struct EmailClientSettings {
+    pub base_url: String,
+    pub sender_email: String,
+    pub authorization_token: Secret<String>,
+    pub timeout_milliseconds: u64,
+}
+
+impl EmailClientSettings {
+    pub fn sender(&self) -> Result<SubscriberEmail, String> {
+        SubscriberEmail::parse(self.sender_email.clone())
+    }
+
+    pub fn timeout(&self) -> Duration {
+        Duration::from_millis(self.timeout_milliseconds)
+    }
 }
 
 impl DatabaseSettings {
@@ -127,12 +150,14 @@ impl TryFrom<Config> for Settings {
     fn try_from(config: Config) -> Result<Self, Self::Error> {
         if config.get::<ApplicationSettings>("application").is_err()
             || config.get::<DatabaseSettings>("database").is_err()
+            || config.get::<EmailClientSettings>("email_client").is_err()
         {
             return Err(ConfigError::Message(String::from("Not enough field")));
         }
         Ok(Self {
             application: config.get("application").unwrap(),
             database: config.get("database").unwrap(),
+            email_client: config.get("email_client").unwrap(),
         })
     }
 }
