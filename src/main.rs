@@ -12,7 +12,7 @@ async fn main() -> std::io::Result<()> {
 
     let application = Application::build(configuration).await?;
 
-    application.run_until_stopped().await?; // Run the server 
+    application.run_until_stopped().await?; // Run the server
 
     Ok(())
 }
