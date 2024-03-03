@@ -12,3 +12,4 @@ email_client:
   base_url: "localhost"
   authorization_token: "36649c8c-f93b-4d76-a478-c2dc579c9577"
   timeout_milliseconds: 10000
+redis_uri: "redis://localhost:6379"

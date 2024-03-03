@@ -18,6 +18,7 @@ pub struct Settings {
     pub application: ApplicationSettings,
     pub database: DatabaseSettings,
     pub email_client: EmailClientSettings,
+    pub redis_uri: Secret<String>,
 }
 
 #[derive(Deserialize, Clone)]
@@ -37,7 +38,7 @@ pub struct ApplicationSettings {
     #[serde(deserialize_with = "deserialize_number_from_string")]
     pub port: u16,
     pub base_url: String,
-    pub hmac_secret: Secret<String>
+    pub hmac_secret: Secret<String>,
 }
 
 #[derive(Deserialize, Clone)]
@@ -152,6 +153,7 @@ impl TryFrom<Config> for Settings {
         if config.get::<ApplicationSettings>("application").is_err()
             || config.get::<DatabaseSettings>("database").is_err()
             || config.get::<EmailClientSettings>("email_client").is_err()
+            || config.get::<String>("redis_uri").is_err()
         {
             return Err(ConfigError::Message(String::from("Not enough field")));
         }
@@ -159,6 +161,7 @@ impl TryFrom<Config> for Settings {
             application: config.get("application").unwrap(),
             database: config.get("database").unwrap(),
             email_client: config.get("email_client").unwrap(),
+            redis_uri: Secret::new(config.get("redis_uri").unwrap()),
         })
     }
 }
