@@ -29,7 +29,7 @@ impl AsRef<str> for SubscriberEmail {
 mod tests {
 
     use super::SubscriberEmail;
-    use claim::assert_err;
+    use claims::assert_err;
     use fake::{faker::internet::en::SafeEmail, Fake};
 
     #[derive(Debug, Clone)]
