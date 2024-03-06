@@ -19,7 +19,7 @@ use crate::{
     email_client::EmailClient,
     routes::{
         admin_dashboard, change_password, change_password_form, confirm, health_check, home, login,
-        login_form, logout, publish_newsletter, subscribe,
+        login_form, logout, publish_newsletter, publish_newsletter_form, subscribe,
     },
 };
 
@@ -31,16 +31,7 @@ pub struct Application {
 impl Application {
     pub async fn build(configuration: Settings) -> Result<Self, anyhow::Error> {
         let connection_pool = get_connection_pool(&configuration);
-        let sender_email = configuration
-            .email_client
-            .sender()
-            .expect("Invalid sender email address.");
-        let email_client = EmailClient::new(
-            configuration.email_client.base_url,
-            sender_email,
-            configuration.email_client.authorization_token,
-            Duration::from_millis(200),
-        );
+        let email_client = configuration.email_client.client();
         let address = format!(
             "{}:{}",
             configuration.application.host, configuration.application.port
@@ -103,13 +94,14 @@ pub async fn run(
             .route("/health_check", web::get().to(health_check))
             .route("/subscriptions", web::post().to(subscribe))
             .route("/subscriptions/confirm", web::get().to(confirm))
-            .route("/newsletters", web::post().to(publish_newsletter))
             .route("/", web::get().to(home))
             .route("/login", web::get().to(login_form))
             .route("/login", web::post().to(login))
             .service(
                 web::scope("/admin")
                     .wrap(from_fn(reject_anonymous_users))
+                    .route("/newsletters", web::post().to(publish_newsletter))
+                    .route("/newsletters", web::get().to(publish_newsletter_form))
                     .route("/dashboard", web::get().to(admin_dashboard))
                     .route("/password", web::get().to(change_password_form))
                     .route("/password", web::post().to(change_password))

@@ -4,7 +4,7 @@ use crate::helpers::{assert_is_redirect_to, spawn_app};
 pub async fn you_must_logged_in_to_see_change_password_form() {
     let app = spawn_app().await;
 
-    let response = app.get_change_password_form().await;
+    let response = app.get_change_password().await;
 
     assert_is_redirect_to(&response, "/login");
 }
@@ -128,7 +128,7 @@ pub async fn non_standard_password_is_not_accepted() {
 
         let html = app.get_change_password_html().await;
 
-        assert!(html.contains("<p><i>The new password is too weak.</i></p>"))
+        assert!(html.contains(r#"<p><i>The new password is too weak</i></p>"#))
     }
 }
 
@@ -156,7 +156,7 @@ pub async fn changing_password_works() {
     assert_is_redirect_to(&response, "/admin/password");
 
     // Act - part 3
-    let html = app.get_admin_dashboard_html().await;
+    let html = app.get_change_password_html().await;
     assert!(html.contains("<p><i>Your password has been changed.</i></p>"));
 
     // Act - part 4

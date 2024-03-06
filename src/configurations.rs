@@ -12,6 +12,7 @@ use std::env;
 use std::time::Duration;
 
 use crate::domain::SubscriberEmail;
+use crate::email_client::EmailClient;
 
 #[derive(Deserialize, Clone)]
 pub struct Settings {
@@ -50,6 +51,17 @@ pub struct EmailClientSettings {
 }
 
 impl EmailClientSettings {
+    pub fn client(&self) -> EmailClient {
+        let sender_email = self.sender().expect("Invalid sender email address");
+        let timeout = self.timeout();
+        EmailClient::new(
+            self.base_url.clone(),
+            sender_email,
+            self.authorization_token.clone(),
+            timeout,
+        )
+    }
+
     pub fn sender(&self) -> Result<SubscriberEmail, String> {
         SubscriberEmail::parse(self.sender_email.clone())
     }

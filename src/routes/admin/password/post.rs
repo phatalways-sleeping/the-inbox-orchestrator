@@ -45,7 +45,7 @@ pub async fn change_password(
     {
         return match e {
             crate::authentication::AuthError::InvalidCredentials(_) => {
-                FlashMessage::error("The current password is incorrect").send();
+                FlashMessage::error("The current password is incorrect.").send();
                 Ok(redirect("/admin/password"))
             }
             crate::authentication::AuthError::UnexpectedError(_) => Err(e500(e).into()),
@@ -56,13 +56,12 @@ pub async fn change_password(
         || form.0.new_password.expose_secret().len() > 128
     {
         FlashMessage::error("The new password is too weak").send();
-        return Err(e500(""));
+        return Ok(redirect("/admin/password"));
     }
 
     crate::authentication::change_password(*user_id, form.0.new_password, &pool)
         .await
         .map_err(e500)?;
     FlashMessage::error("Your password has been changed.").send();
-
     Ok(redirect("/admin/password"))
 }

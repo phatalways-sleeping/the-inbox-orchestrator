@@ -6,12 +6,11 @@ pub async fn logout_clear_session_state() {
 
     // Act - Part 1 - Try to login
     let login_body = serde_json::json!({
-        "username": "random-username",
-        "password": "random-password"
+        "username": &app.test_user.username,
+        "password": &app.test_user.password,
     });
 
     let response = app.post_login(&login_body).await;
-
     assert_is_redirect_to(&response, "/admin/dashboard");
 
     // Act - Part 2 - Follow the redirect
